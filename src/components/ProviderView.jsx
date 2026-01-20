@@ -120,8 +120,12 @@ export const ProviderView = ({ provider }) => {
   }, [id]);
 
   useEffect(() => {
-    if (!id || !socket || !currentLocation || !customerLocation) return;
+    if (!id || !socket || !currentLocation || !customerLocation) {
+      console.log('⚠️ PROVIDER: Not ready to start - ID:', !!id, 'Socket:', !!socket, 'CurrentLoc:', !!currentLocation, 'CustomerLoc:', !!customerLocation);
+      return;
+    }
 
+    console.log('🚗 PROVIDER: Starting tracking with tripId:', tripId);
     socket.emit("provider:start", {
       tripId,
       provider,
