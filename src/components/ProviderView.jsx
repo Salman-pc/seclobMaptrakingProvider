@@ -3,7 +3,7 @@ import { useSocket } from '../hooks/useSocket';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { getCustomerAddressApi, userBookedServiceApi } from '../api/api';
+import { getCustomerAddressApi, getRoutetoCustomerApi, getUserLocationApi, userBookedServiceApi } from '../api/api';
 import { useNavigate, useParams } from "react-router-dom";
 
 
@@ -62,12 +62,12 @@ export const ProviderView = ({ provider }) => {
       (position) => {
         const { latitude, longitude } = position?.coords;
         setCurrentLocation({ lat: latitude, lng: longitude });
-                  console.log("top ",latitude && longitude);
+        console.log("top ", latitude && longitude);
 
-        if(latitude && longitude){
-          console.log("if inside ",latitude && longitude);
-          
-          localStorage.setItem("currentlocation",currentLocation)
+        if (latitude && longitude) {
+          console.log("if inside ", latitude && longitude);
+
+          localStorage.setItem("currentlocation", currentLocation)
         }
         getAddress(latitude, longitude);
       },
@@ -77,12 +77,12 @@ export const ProviderView = ({ provider }) => {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position?.coords;
-                      console.log("bottom ",latitude && longitude);
+            console.log("bottom ", latitude && longitude);
 
             setCurrentLocation({ lat: latitude, lng: longitude });
             getAddress(latitude, longitude);
           },
-          () => {},
+          () => { },
           { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
         );
       },
@@ -161,22 +161,22 @@ export const ProviderView = ({ provider }) => {
 
     setWatchId(ids);
     setIsTracking(true);
-  }, [ customerLocation]);
+  }, [customerLocation]);
 
   const getAddress = async (lat, lng) => {
     const now = Date.now();
     if (now - lastAddressFetch < 5000) return;
-    
+
     setLastAddressFetch(now);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      const data = await response.json();
-      if (data.display_name) {
-        setLocationAddress(data.display_name);
+      const response = await getUserLocationApi(lat, lng)
+      if (response.UserLocation?.display_name) {
+        setLocationAddress(response.UserLocation.display_name);
       }
     } catch (error) {
       setLocationAddress('Address not available');
     }
+
   };
 
   const calculateDistance = (lat1, lng1, lat2, lng2) => {
@@ -190,32 +190,28 @@ export const ProviderView = ({ provider }) => {
     return R * c;
   };
 
-  const getRoadRoute = async (startLat, startLng, endLat, endLng) => {
+  const getRoadRoute = async (startLat, startLon, endLat, endLon) => {
     const now = Date.now();
     if (now - lastRouteFetch < 5000) return;
-    
+
     setLastRouteFetch(now);
     try {
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson&alternatives=2`,
-        { mode: 'cors' }
-      )
-      if (!response.ok) throw new Error('Route fetch failed');
-      const data = await response.json();
-      if (data?.routes && data?.routes.length > 0) {
-        const allRoutes = data.routes.map(route => 
-          route.geometry.coordinates.map(coord => [coord[1], coord[0]])
-        );
-        setRoadRoute(allRoutes[0]);
-        setAlternativeRoutes(allRoutes);
-        setSelectedRouteIndex(0);
-        setDistance(data.routes[0].distance / 1000);
+      const response = await getRoutetoCustomerApi(startLat, startLon, endLat, endLon);
+      if (response?.routes && response.routes.length > 0) {
+        setAlternativeRoutes(response.routes);
+        setRoadRoute(response.routes[0]);
+        setDistance(response.distanceKm);
       }
-    } catch (error) {
-      const dist = calculateDistance(startLat, startLng, endLat, endLng);
-      setDistance(dist);
+      console.log(response, "road route response");
     }
-  };
+    catch (error) {
+      console.error('Road route error:', error);
+      if (currentLocation && customerLocation) {
+        const dist = calculateDistance(startLat, startLon, endLat, endLon);
+        setDistance(dist);
+      }
+    };
+  }
 
   const handleRouteSelect = (index) => {
     setSelectedRouteIndex(index);
@@ -237,7 +233,7 @@ export const ProviderView = ({ provider }) => {
   }
 
   useEffect(() => {
-    if (isTracking ) {
+    if (isTracking) {
       const interval = setInterval(() => {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
@@ -253,7 +249,7 @@ export const ProviderView = ({ provider }) => {
               console.warn('Location update error:', error.message);
               // Continue with last known location on timeout
             },
-            { enableHighAccuracy: false, maximumAge: 10000, timeout: 10000 }
+            { enableHighAccuracy: false, maximumAge: 30000, timeout: 15000 }
           );
         }
       }, 3000);

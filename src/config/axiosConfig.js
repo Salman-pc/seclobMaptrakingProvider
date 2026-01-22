@@ -1,8 +1,8 @@
 
 import axios from "axios";
-export const baseURL =  "https://apigateway.seclob.com" ;
+export const baseURL =  "https://apigateway.seclob.in" ;
 // export const baseURL =  "http://localhost:3010" ;
-export const notificationURL = "https://notificationservice.seclob.com";
+export const notificationURL = "https://notificationservice.seclob.in";
 // export const notificationURL = "http://localhost:3020";
 
 

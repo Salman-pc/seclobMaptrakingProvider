@@ -38,3 +38,22 @@ export const userBookedServiceApi = async (id)=>{
         throw error;
     }
 }
+
+export const getUserLocationApi = async (lat, lon) => {
+    try {
+        const response = await axiosConfig.get(`/v1/vehicleService/location/convert-coordinates?lat=${lat}&lon=${lon}`);   
+        return response.data;
+    } catch (error) {
+        throw error;
+    }   
+
+}
+
+export const getRoutetoCustomerApi = async (startLat, startLon, endLat, endLon) => {
+    try {
+        const response = await axiosConfig.get(`/v1/vehicleService/location/route-to-customer?startLat=${startLat}&startLon=${startLon}&endLat=${endLat}&endLon=${endLon}`);   
+        return response.data;
+    } catch (error) {
+        throw error;
+    }   
+}
